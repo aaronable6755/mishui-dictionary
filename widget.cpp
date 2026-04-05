@@ -37,15 +37,8 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     ui->stackedWidget->setCurrentIndex(1);
-    // 1lluw9capfxmkzw1trxay_g pwd 0721
 
 /////////////////////////////////////////////////////////////
-
-
-    // 创建新的容器 widget
-    /*widget_container_scrollArea = new QWidget(ui->scrollArea);
-    ui->scrollArea->setWidget(widget_container_scrollArea);
-    //ui->scrollArea->setWidgetResizable(true);*/ // 允许内容部件随视口调整
     ui->scrollArea->setWidgetResizable(false);
     // 获取当前应用程序的调色板
     QPalette palette = qApp->palette();
@@ -57,14 +50,6 @@ Widget::Widget(QWidget *parent)
 
     // 将新的调色板应用到整个应用程序
     qApp->setPalette(palette);
-
-    // qDebug() << "ContentWidget size:" << ui->scrollAreaWidgetContents_2->size();
-    // qDebug() << "Viewport size:" << ui->scrollArea->viewport()->size();
-    // qDebug() << "ScrollBar policies: H=" << ui->scrollArea->horizontalScrollBarPolicy()
-    //          << " V=" << ui->scrollArea->verticalScrollBarPolicy();
-    // qDebug() << "ScrollArea size:" << ui->scrollArea->size();
-    // qDebug() << "ScrollArea minimumSize:" << ui->scrollArea->minimumSize();
-    // qDebug() << "ScrollArea maximumSize:" << ui->scrollArea->maximumSize();
     ui->scrollAreaWidgetContents_2->updateGeometry();
     ui->scrollArea->updateGeometry();
     ui->scrollArea->viewport()->update();
@@ -93,7 +78,6 @@ Widget::Widget(QWidget *parent)
             });
     Qt::ColorScheme currentScheme = QGuiApplication::styleHints()->colorScheme();
     onColorSchemeChanged(currentScheme);
-    // // qDebug() << "词典加载中...";
 
 
     m_dictLoaded = m_dictionary.loadDictionaryFiles("./texts/values.txt",
@@ -103,14 +87,12 @@ Widget::Widget(QWidget *parent)
                                                     "./texts/cn_phrases.txt");
 
     if (m_dictLoaded){
-        // qDebug() << "字典加载完成！下一步：自检";
         m_dictionary.runTests();
 
         ui->label_result->setText("正确词汇：<br>最佳翻译：<br>词性：<br>相关词组：<br>翻译：<br>例句：<br>例句翻译：<br><font color = \"#27FF97\">拼写没有问题!</font>");
         ui->label_2->setText("加载已完成！");
         ui->label_2->setStyleSheet("color: #27FF97");
     } else {
-        // qDebug() << "词典初始化失败！";
         ui->label_result->setText("请确保texts与mesi_polo.exe位于同一目录下!");
         ui->label_result->setStyleSheet("color: #FF0D0D"); // 红色
         ui->label_2->setText("词典加载失败，功能不可用");
@@ -118,14 +100,6 @@ Widget::Widget(QWidget *parent)
 
         ui->lineEdit_translate->setEnabled(false);
     }
-
-    // 在构造函数末尾或创建完所有标签后
-    // QTimer::singleShot(100, this, [this]() {
-    //     qDebug() << "--- After show ---";
-    //     qDebug() << "ScrollArea size:" << ui->scrollArea->size();
-    //     qDebug() << "Viewport size:" << ui->scrollArea->viewport()->size();
-    //     qDebug() << "ContentWidget size:" << ui->scrollAreaWidgetContents_2->size();
-    // });
 };
 
 Widget::~Widget()
@@ -142,8 +116,8 @@ void Widget::createVocabPage(int row_s, QString pos)
 {
 
     QScrollArea *scrollArea = ui->vocabScrollArea;
-    QWidget *oldContainer = scrollArea->takeWidget(); // 取出旧容器（不删除）
-    delete oldContainer; // 删除旧容器及其所有子控件
+    QWidget *oldContainer = scrollArea->takeWidget(); 
+    delete oldContainer;
 
     // 创建新的容器 widget
     QWidget *container = new QWidget;
@@ -215,7 +189,7 @@ void Widget::onColorSchemeChanged(Qt::ColorScheme scheme) {
     updateColors(scheme);
     updateColorStrings(scheme);
 }
-void Widget::updateColors(Qt::ColorScheme scheme) {
+void Widget::updateColors(Qt::ColorScheme scheme) { // 该函数现在不用了
     if (scheme == Qt::ColorScheme::Dark) { // 深色模式
         // ui->label_result->setStyleSheet("QLabel{background-color: #282828; border-radius: 9px; color: #f3f3f3}");
     } else if (scheme == Qt::ColorScheme::Light) { // 浅色模式
