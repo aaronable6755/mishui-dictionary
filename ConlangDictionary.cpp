@@ -13,8 +13,6 @@ const QSet<QString> ConlangDictionary::chineseStopWords = {
     "的", "之", "与", "和", "或", "在", "于", "对", "从", "而", "但"
 };
 
-// ========== 核心数据管理 ==========
-
 QVector<QString> ConlangDictionary::createExSentence(const QString& word, const QString& wordTrans, const QString& pos){
     QVector<QString> sentenceAndTrans = {"\n","  例句中文意义："};
     if (pos.contains("ko")){
@@ -34,26 +32,20 @@ bool ConlangDictionary::loadDictionaryFiles(
     const QString& phrasesFile,      // 词组文件（phrases.txt）
     const QString& phraseTransFile   // 词组翻译文件（cn_phrases.txt）
     ) {
-    // 清除所有现有数据
     clearAllData();
 
-    // 打开所有文件
     QFile fWords(valuesFile), fTrans(keysFile), fPos(posFile),
         fPhrases(phrasesFile), fPhraseTrans(phraseTransFile);
 
-    // 创建文件列表便于统一处理
     QList<QFile*> files = {&fWords, &fTrans, &fPos, &fPhrases, &fPhraseTrans};
     QStringList filenames = {valuesFile, keysFile, posFile, phrasesFile, phraseTransFile};
 
-    // 检查文件是否成功打开
     for (int i = 0; i < files.size(); ++i) {
         if (!files[i]->open(QIODevice::ReadOnly | QIODevice::Text)) {
-            // qDebug() << "错误：无法打开文件" << filenames[i];
             return false;
         }
     }
 
-    // 创建文本流
     QTextStream inWords(&fWords), inTrans(&fTrans), inPos(&fPos),
         inPhrases(&fPhrases), inPhraseTrans(&fPhraseTrans);
 
@@ -61,41 +53,27 @@ bool ConlangDictionary::loadDictionaryFiles(
     int lineNum = 0;
     int loadedCount = 0;
 
-    // 逐行读取（五个文件行号必须对齐）
     while (!inWords.atEnd()) {
-        // 读取一行数据
         word = inWords.readLine().trimmed();
         lineNum++;
 
-        // 同步读取其他四个文件
         trans = inTrans.readLine().trimmed();
         pos = inPos.readLine().trimmed();
         phraseLine = inPhrases.readLine().trimmed();
         phraseTransLine = inPhraseTrans.readLine().trimmed();
 
-        // 检查是否有文件提前结束（行数不匹配）
-        // 这里可以加上phraseLine.isNull() || phraseTransLine.isNull()，作为条件
         if (trans.isNull() || pos.isNull()) {
-            // qDebug() << "警告：文件行数不匹配（第" << lineNum << "行）";
             break;
         }
 
-        // 跳过空行（单词和翻译都为空时）
         if (word.isEmpty() && trans.isEmpty()) {
             continue;
         }
 
-        // ========== 解析词组 ==========
-        // 词组文件中每行可能有多个词组，用逗号分隔
-
-        // 使用 splitString 函数解析逗号分隔的词组
         QStringList phrasesVec = splitString(phraseLine, ',');
         QStringList phraseTransVec = splitString(phraseTransLine, ',');
 
-        // 确保词组和翻译数量匹配
         if (phrasesVec.size() != phraseTransVec.size()) {
-            // qDebug() << "警告：词组与翻译数量不匹配（第" << lineNum << "行）";
-            // 取较小数量，确保一一对应
             int minSize = qMin(phrasesVec.size(), phraseTransVec.size());
             if (phrasesVec.size() > minSize) {
                 phrasesVec = phrasesVec.mid(0, minSize);
@@ -105,46 +83,33 @@ bool ConlangDictionary::loadDictionaryFiles(
             }
         }
 
-        // ========== 创建词条对象 ==========
         DictionaryEntry entry;
-        entry.word = word;                            // 原始单词（保持大小写）
+        entry.word = word;                            // 原始单词
         entry.word_cn = trans;                        // 中文翻译
         entry.partOfSpeech = pos;                     // 词性
         entry.phrases = phrasesVec.toVector();        // 词组数组
         entry.phrases_cn = phraseTransVec.toVector(); // 词组翻译数组
         entry.index = lineNum;
 
-        // 存储到主索引
-        // 预处理：单词统一为小写（用于索引）
+
         QString wordLower = word.toLower();
         wordToEntry[wordLower] = entry;
-        //const DictionaryEntry* entryPtr = &wordToEntry[wordLower];
 
-        // 关键：获取存储的entry的指针，并添加到索引映射
-        // 注意：wordToEntry[wordLower]返回的是引用，我们获取它的地址
         indexToEntry[lineNum] = entry;
-        // ========== 构建快速索引（单词/翻译/词性） ==========
 
-        // 1. 单词 -> 词条（主索引）
         wordToEntry[wordLower] = entry;
 
-        // 2. 所有单词集合（用于遍历）
         allWords.insert(wordLower);
 
-        // 3. 首字母索引（优化模糊搜索）
         if (!wordLower.isEmpty()) {
             firstLetterIndex[wordLower[0]].append(wordLower);
         }
 
-        // 4. 中文翻译 -> 单词（反向索引）
         if (!trans.isEmpty()) {
-            // 注意：这里假设翻译是一对一的，如果有多个单词有相同翻译，它们会被添加到同一个列表中
             translationToWords[trans].append(wordLower);
         }
 
-        // 5. 词性 -> 单词（词性索引）
         if (!pos.isEmpty()) {
-            // 词性可能有多个，用分号分隔
             QStringList posList = splitString(pos, ';');
             for (const QString& singlePos : std::as_const(posList)) {
                 QString cleanPos = singlePos.trimmed().toLower();
@@ -153,105 +118,65 @@ bool ConlangDictionary::loadDictionaryFiles(
                 }
             }
         }
-
-        // 6 索引 -> 单词（供搜索或者创建所有词汇页面）
-        // 已经在上面创建完成！相对位置：-33行，绝对位置：130行
-
-        // 词组信息已经存储在 entry.phrases 和 entry.phrases_cn 中
-        // 在搜索时动态遍历所有词条来查找词组
-        // 这对于少量词组的自创语言词典是完全可以接受的
-
         loadedCount++;
     }
 
-    // ========== 加载完成后的统计和验证 ==========
-
-    // 关闭所有文件
+    // 关闭
     for (auto f : std::as_const(files)) {
         f->close();
     }
 
-    // 输出加载统计
-    // qDebug() << "\n=== 词典加载完成 ===";
-    // qDebug() << "总词条数:" << loadedCount;
-    // qDebug() << "单词索引大小:" << wordToEntry.size();
-    // qDebug() << "中文翻译索引大小:" << translationToWords.size();
-    // qDebug() << "词性索引大小:" << posToWords.size();
-    // qDebug() << "首字母索引大小:" << firstLetterIndex.size();
-
-    // 检查是否有重复单词（大小写不敏感）
     if (wordToEntry.size() != loadedCount) {
-        // qDebug() << "警告：存在大小写不敏感的重复单词！";
+        //qDebug() << "=======存在大小写不敏感的重复单词";
     }
 
     // 验证数据完整性
     if (loadedCount > 0) {
-        // qDebug() << "词典加载成功！";
-
-        // 显示示例数据（前3个词条）
-        // qDebug() << "\n示例数据（前3个词条）:";
         int count = 0;
         for (auto it = wordToEntry.constBegin(); it != wordToEntry.constEnd() && count < 3; ++it) {
             const DictionaryEntry& entry = it.value();
-            // qDebug() << "单词:" << entry.word;
-            // qDebug() << "翻译:" << entry.word_cn;
-            // qDebug() << "词性:" << entry.partOfSpeech;
-
             if (!entry.phrases.isEmpty()) {
                 // qDebug() << "词组:";
                 for (int i = 0; i < entry.phrases.size(); ++i) {
-                    // qDebug() << "  " << entry.phrases[i] << " -> " << entry.phrases_cn[i];
+                    //qDebug() << "  " << entry.phrases[i] << " -> " << entry.phrases_cn[i];
                 }
             }
-            // qDebug() << "---";
             count++;
         }
 
-        // 显示词组总数统计
         int totalPhrases = 0;
         for (auto it = wordToEntry.constBegin(); it != wordToEntry.constEnd(); ++it) {
             totalPhrases += it.value().phrases.size();
         }
-        // qDebug() << "总词组数:" << totalPhrases;
-        // qDebug() << "平均每个词条词组数:" << (totalPhrases * 1.0 / loadedCount);
     }
-    // 在loadDictionaryFiles函数末尾，return之前添加：
-    // qDebug() << "\n=== 完整词条列表 ===";
+
     int count = 0;
     for (auto it = wordToEntry.constBegin(); it != wordToEntry.constEnd(); ++it) {
         const DictionaryEntry& entry = it.value();
         if (entry.word.contains("mesi", Qt::CaseInsensitive)) {
-            // qDebug() << "找到包含'mesi'的词条:";
-            // qDebug() << "  单词:" << entry.word;
-            // qDebug() << "  翻译:" << entry.word_cn;
-            // qDebug() << "  词组:" << entry.phrases;
+
         }
-        if (count++ < 10) {  // 只显示前10个
-            // qDebug() << count << ". 单词:" << entry.word << " 翻译:" << entry.word_cn;
+        if (count++ < 10) {
+            //qDebug() << count << ". 单词:" << entry.word << " 翻译:" << entry.word_cn;
         }
     }
     return loadedCount > 0;
 }
 
-// 辅助函数 splitString 的实现
 QStringList ConlangDictionary::splitString(const QString& str, QChar delimiter) const {
     if (str.isEmpty()) {
         return QStringList();
     }
 
-    // 使用Qt内置的split函数，跳过空的部分
     return str.split(delimiter, Qt::SkipEmptyParts);
 }
 
-// clearAllData 函数实现
 void ConlangDictionary::clearAllData() {
     wordToEntry.clear();
     translationToWords.clear();
     posToWords.clear();
     allWords.clear();
     firstLetterIndex.clear();
-
-    // 注意：我们不清理词组索引，因为我们没有构建词组索引
 }
 
 const DictionaryEntry* ConlangDictionary::lookupByNumIndex(int index) const {
@@ -259,7 +184,6 @@ const DictionaryEntry* ConlangDictionary::lookupByNumIndex(int index) const {
     return (it != indexToEntry.end()) ? &(it.value()) : nullptr;
 }
 
-// ========== 中文处理相关 ==========
 
 bool ConlangDictionary::isMainlyChinese(const QString& str) const {
     if (str.isEmpty()) return false;
@@ -276,8 +200,6 @@ bool ConlangDictionary::isMainlyChinese(const QString& str) const {
     return (chineseCount * 100 / str.length()) > 40;
 }
 
-// ========== 基础搜索功能 ==========
-// 代替原来的中文关键词搜索
 QVector<SearchResult> ConlangDictionary::searchChineseTranslation(
     const QString& query) const {
 
@@ -288,7 +210,7 @@ QVector<SearchResult> ConlangDictionary::searchChineseTranslation(
 
     QSet<const DictionaryEntry*> addedEntries;
 
-    // 方法1：精确匹配
+    // 精确匹配
     auto exactIt = translationToWords.find(queryTrimmed);
     if (exactIt != translationToWords.end()) {
         const QVector<QString>& words = exactIt.value();
@@ -305,7 +227,7 @@ QVector<SearchResult> ConlangDictionary::searchChineseTranslation(
         }
     }
 
-    // 方法2：部分匹配（简单实现，不提取关键词）
+    // 部分匹配
     if (results.isEmpty()) {
         // 遍历所有翻译
         for (auto it = translationToWords.constBegin();
@@ -349,11 +271,6 @@ QVector<SearchResult> ConlangDictionary::searchChineseTranslation(
     return results;
 }
 
-
-
-// ========== 新增搜索功能 ==========
-
-// 单词精确查找 - O(1)
 const DictionaryEntry* ConlangDictionary::lookupByWord(const QString& word) const {
     QString wordLower = word.toLower();
     auto it = wordToEntry.find(wordLower);
@@ -364,7 +281,6 @@ QList<int> ConlangDictionary::getAllIndices() const {
     return indexToEntry.keys();
 }
 
-// 中文翻译精确查找 - O(1)
 QVector<const DictionaryEntry*> ConlangDictionary::lookupByExactChinese(const QString& chinese) const {
     QVector<const DictionaryEntry*> results;
 
@@ -382,7 +298,6 @@ QVector<const DictionaryEntry*> ConlangDictionary::lookupByExactChinese(const QS
     return results;
 }
 
-// 词性搜索 - O(1) 查找 + O(k) 获取结果
 QVector<const DictionaryEntry*> ConlangDictionary::lookupByPartOfSpeech(const QString& pos) const {
     QVector<const DictionaryEntry*> results;
 
@@ -400,8 +315,6 @@ QVector<const DictionaryEntry*> ConlangDictionary::lookupByPartOfSpeech(const QS
 
     return results;
 }
-
-// 模糊搜索 - 使用首字母索引优化
 QVector<std::pair<QString, double>> ConlangDictionary::fuzzyWordSearch(
     const QString& userInput, int maxSuggestions, double threshold) const {
 
@@ -411,15 +324,14 @@ QVector<std::pair<QString, double>> ConlangDictionary::fuzzyWordSearch(
 
     QString inputLower = userInput.toLower();
 
-    // 使用首字母索引缩小搜索范围
+
     QVector<QString> searchSpace;
     if (!inputLower.isEmpty() && firstLetterIndex.contains(inputLower[0])) {
-        searchSpace = firstLetterIndex[inputLower[0]];  // 只搜索相同首字母的单词
+        searchSpace = firstLetterIndex[inputLower[0]]; 
     } else {
-        searchSpace = allWords.values().toVector();     // 回退到全部单词
+        searchSpace = allWords.values().toVector();
     }
 
-    // 计算相似度
     std::string inputStd = inputLower.toStdString();
 
     for (const QString& word : std::as_const(searchSpace)) {
@@ -431,7 +343,6 @@ QVector<std::pair<QString, double>> ConlangDictionary::fuzzyWordSearch(
         }
     }
 
-    // 排序并限制数量
     std::sort(candidates.begin(), candidates.end(),
               [](const auto& a, const auto& b) {
                   return a.second > b.second;
@@ -444,8 +355,6 @@ QVector<std::pair<QString, double>> ConlangDictionary::fuzzyWordSearch(
     return candidates;
 }
 
-// ========== 智能搜索 ==========
-
 void ConlangDictionary::handleMixedQuery(const QString& query,
                                          QVector<SearchResult>& results,
                                          QSet<const DictionaryEntry*>& addedEntries) const {
@@ -455,18 +364,16 @@ void ConlangDictionary::handleMixedQuery(const QString& query,
 
     QHash<const DictionaryEntry*, double> entryScores;
 
-    // 修复：使用 std::as_const 避免警告
+   
     for (const QString& part : std::as_const(parts)) {
         if (part.isEmpty()) continue;
 
         QVector<SearchResult> partResults = smartSearch(part, 20);
-        // 修复：使用 std::as_const 避免警告
+       
         for (const SearchResult& result : std::as_const(partResults)) {
             entryScores[result.entry] += result.score;
         }
     }
-
-    // 修复：使用 constBegin/constEnd 避免警告
     for (auto it = entryScores.constBegin(); it != entryScores.constEnd(); ++it) {
         const DictionaryEntry* entry = it.key();
         if (!addedEntries.contains(entry)) {
@@ -477,7 +384,6 @@ void ConlangDictionary::handleMixedQuery(const QString& query,
     }
 }
 
-// 检查是否为整数
 bool ConlangDictionary::isInteger(const QString& s) {
     bool ifok;
     s.toInt(&ifok);
@@ -491,7 +397,6 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
     QString trimmedQuery = query.trimmed();
 
     if (query.isEmpty()) {
-        // qDebug() << "查询为空，返回空结果";
         return allResults;
     }
 
@@ -499,10 +404,8 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
         bool ok;
         int index = query.toInt(&ok);
         if (ok && index > 0) {   // 索引从1开始
-            // // qDebug() << "已经进入if";
             const DictionaryEntry* entry = lookupByNumIndex(index);
             if (entry) {
-                // // qDebug() << "   ✓ 通过索引找到词条: " << entry->word;
                 addedEntries.insert(entry);
                 allResults.append(SearchResult(
                     entry,
@@ -510,29 +413,17 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
                     100.0,
                     QString("索引 %1 匹配").arg(index)
                     ));
-                // 索引匹配通常非常精准，可以直接返回，避免继续搜索
-                // 直接返回结果（仅索引匹配）
-                // if (allResults.empty()) {
-                //     // qDebug() << "返回了一个空的结果";
-                // }
                 return allResults;
             } else {
-                // // qDebug() << "   ✗ 索引" << index << "无对应词条";
                 return allResults;
             }
         }
     }
-    // // qDebug() << "==================词语搜索==================";
     bool isChinese = isMainlyChinese(trimmedQuery);
-    // // qDebug() << "修剪后查询: \"" << trimmedQuery << "\", 是否中文: " << isChinese;
 
-    // ========== 第一阶段：单词精确匹配 ==========
-    // qDebug() << "\n1. 尝试单词精确匹配...";
-
-    // 无论是否中文，都尝试单词精确匹配
     const DictionaryEntry* wordEntry = lookupByWord(trimmedQuery);
     if (wordEntry) {
-        // qDebug() << "   ✓ 找到精确匹配单词: " << wordEntry->word << " -> " << wordEntry->word_cn;
+
         addedEntries.insert(wordEntry);
         allResults.append(SearchResult(
             wordEntry,
@@ -541,27 +432,20 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
             "单词完全匹配"
             ));
     } else {
-        // qDebug() << "   ✗ 未找到精确匹配单词";
+        //qDebug() << "未找到精确匹配单词";
     }
 
-    // ========== 第二阶段：查找包含该单词的词组 ==========
-    // qDebug() << "\n2. 查找包含该单词的词组...";
     auto phraseResults = findPhrasesContainingWord(trimmedQuery);
 
     for (const SearchResult& result : std::as_const(phraseResults)) {
         if (!addedEntries.contains(result.entry)) {
             addedEntries.insert(result.entry);
             allResults.append(result);
-            // qDebug() << "   添加词组结果: " << result.entry->word
-            //         << " [" << result.matchedby << "]";
         }
     }
 
-    // ========== 第三阶段：中文翻译搜索 ==========
     if (isChinese || allResults.isEmpty()) {
-        // qDebug() << "\n3. 尝试中文翻译搜索...";
         auto chineseResults = searchChineseDynamic(trimmedQuery);
-        // qDebug() << "   找到 " << chineseResults.size() << " 个中文翻译结果";
 
         for (const SearchResult& result : std::as_const(chineseResults)) {
             if (!addedEntries.contains(result.entry)) {
@@ -571,12 +455,8 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
         }
     }
 
-    // ========== 第四阶段：完整词组匹配 ==========
     if (trimmedQuery.contains(' ')) {
-        // qDebug() << "\n4. 尝试完整词组匹配...";
         auto exactPhraseResults = findExactPhrase(trimmedQuery);
-        // qDebug() << "   找到 " << exactPhraseResults.size() << " 个完整词组匹配";
-
         for (const SearchResult& result : std::as_const(exactPhraseResults)) {
             if (!addedEntries.contains(result.entry)) {
                 addedEntries.insert(result.entry);
@@ -584,11 +464,10 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
             }
         }
 
-        // 中文词组翻译匹配
         if (isChinese && exactPhraseResults.isEmpty()) {
-            // qDebug() << "   尝试中文词组翻译匹配...";
+
             auto phraseTransResults = findPhraseTranslation(trimmedQuery);
-            // qDebug() << "   找到 " << phraseTransResults.size() << " 个中文词组翻译匹配";
+
 
             for (const SearchResult& result : std::as_const(phraseTransResults)) {
                 if (!addedEntries.contains(result.entry)) {
@@ -599,14 +478,10 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
         }
     }
 
-    // ========== 第五阶段：模糊搜索 ==========
     if (allResults.isEmpty()) {
-        // qDebug() << "\n5. 尝试模糊搜索...";
 
-        // 单词模糊匹配
         if (!isChinese) {
             auto fuzzyResults = fuzzyWordSearch(trimmedQuery, maxResults, 50.0);
-            // qDebug() << "   找到 " << fuzzyResults.size() << " 个模糊匹配";
 
             for (const auto& [fuzzyWord, score] : std::as_const(fuzzyResults)) {
                 if (const DictionaryEntry* entry = lookupByWord(fuzzyWord)) {
@@ -619,7 +494,6 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
                             QString("模糊匹配: %1").arg(fuzzyWord)
                             ));
 
-                        // 对于模糊匹配的单词，也查找包含它的词组
                         auto morePhraseResults = findPhrasesContainingWord(fuzzyWord);
                         for (const SearchResult& phraseResult : std::as_const(morePhraseResults)) {
                             if (!addedEntries.contains(phraseResult.entry)) {
@@ -633,11 +507,6 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
         }
     }
 
-    // ========== 第六阶段：排序和去重 ==========
-    // qDebug() << "\n6. 排序和去重...";
-    // qDebug() << "   原始结果数: " << allResults.size();
-
-    // 去重
     QVector<SearchResult> finalResults;
     QSet<const DictionaryEntry*> uniqueEntries;
 
@@ -648,9 +517,6 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
         }
     }
 
-    // qDebug() << "   去重后结果数: " << finalResults.size();
-
-    // 按分数排序
     auto comparator = [](const SearchResult& a, const SearchResult& b) {
         static const QHash<QString, int> priority = {
             {"word_exact", 100},
@@ -672,17 +538,14 @@ QVector<SearchResult> ConlangDictionary::smartSearch(const QString& query, int m
 
     std::sort(finalResults.begin(), finalResults.end(), comparator);
 
-    // 限制结果数量
     if (finalResults.size() > maxResults) {
         finalResults.resize(maxResults);
     }
 
-    // qDebug() << "=== smartSearch: 搜索完成，返回 " << finalResults.size() << " 个结果 ===";
 
     return finalResults;
 }
 
-// ========== 统计和测试 ==========
 
 void ConlangDictionary::printStatistics() const {
     // qDebug() << "\n=== 词典统计信息 ===";
@@ -745,7 +608,7 @@ void ConlangDictionary::runTests() const {
     auto phraseResults = findExactPhrase("mesi huhuhu");
     if (!phraseResults.isEmpty()) {
         // qDebug() << "✓ 词组搜索测试通过，找到" << phraseResults.size() << "个结果";
-        // 修复：使用 std::as_const 避免警告
+       
         for (const SearchResult& sr : std::as_const(phraseResults)) {
             // qDebug() << "  结果:" << sr.entry->word << "->" << sr.entry->word_cn;
         }
@@ -1038,9 +901,9 @@ bool ConlangDictionary::isSentence(QString &query){
     QChar querylast = query[query.length() - 1];
     qDebug() << querylast;
     if (querylast == '.') {
-        qDebug() << "进入了if";
+        //qDebug() << "进入了if";
         return true;
     }
-    qDebug() << "过了";
+    //qDebug() << "过了";
     return false;
 }
