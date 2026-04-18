@@ -411,7 +411,7 @@ QPushButton:hover{
        <x>80</x>
        <y>560</y>
        <width>471</width>
-       <height>121</height>
+       <height>101</height>
       </rect>
      </property>
      <property name="font">
@@ -428,11 +428,7 @@ QPushButton:hover{
 }</string>
      </property>
      <property name="text">
-      <string>注:ko=名词,kiu=形容词和副词,koler=代词,koos=介词
-ka=动词,kei=助词和疑问词
-结果使用了模糊匹配算法,尽量保证精确(^^ゞ!
-可以通过索引搜索！但是好像没什么用……
-如果使用整句翻译，需要加英文句号！</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;结果使用了模糊匹配算法,尽量保证精确(^^ゞ!&lt;/p&gt;&lt;p&gt;可以通过索引搜索！但是好像没什么用……&lt;/p&gt;&lt;p&gt;如果使用整句翻译，需要加英文句号！&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_2">
@@ -492,35 +488,6 @@ ka=动词,kei=助词和疑问词
       <property name="styleSheet">
        <string notr="true"/>
       </property>
-      <widget class="QLabel" name="label_result">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>455</width>
-         <height>291</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>19</pointsize>
-        </font>
-       </property>
-       <property name="cursor">
-        <cursorShape>IBeamCursor</cursorShape>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QLabel{
-	border: 1px solid #27FF97;
-	border-radius: 15px;
-	padding-left: 12px;
-	background: rgba(0, 0, 0, 15)
-}</string>
-       </property>
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
      </widget>
     </widget>
    </widget>

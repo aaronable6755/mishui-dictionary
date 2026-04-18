@@ -33,6 +33,7 @@ struct DictionaryEntry {
     }
 };
 
+// 搜索结果结构体
 struct SearchResult {
     const DictionaryEntry* entry;   // 指向匹配的词条
     QString matchedby;              // 匹配方式
@@ -51,16 +52,23 @@ struct SearchResult {
     }
 };
 
+// 主词典类
+// ConlangDictionary.h
 class ConlangDictionary {
 private:
+    // ========== 快速索引（针对单词/翻译/词性）==========
     QHash<QString, DictionaryEntry> wordToEntry;          // 单词 -> 完整词条
     QHash<QString, QVector<QString>> translationToWords;  // 翻译 -> 单词列表
     QHash<QString, QVector<QString>> posToWords;          // 词性 -> 单词列表
     QHash<QChar, QVector<QString>> firstLetterIndex;      // 首字母 -> 单词列表
     QHash<int, DictionaryEntry> indexToEntry;
+    // ========== 动态搜索（针对词组）==========
+    // 不需要词组索引！词组存储在 DictionaryEntry 中
 
+    // ========== 辅助结构 ==========
     QSet<QString> allWords;                                // 所有单词集合
 
+    // 停用词（如果需要）
     static const QSet<QString> chineseStopWords;
 
 public:
@@ -86,10 +94,12 @@ public:
 
 private:
     const DictionaryEntry* lookupByNumIndex(int index) const;
+    // 单词/翻译快速搜索（使用索引）
     const DictionaryEntry* lookupByWord(const QString& word) const;
     QVector<const DictionaryEntry*> lookupByExactChinese(const QString& chinese) const;
     QVector<std::pair<QString, double>> fuzzyWordSearch(const QString& userInput, int maxSuggestions, double threshold) const;
 
+    // 词组动态搜索（遍历）
     QVector<SearchResult> findPhrasesContainingWord(const QString& word) const;
     QVector<SearchResult> findExactPhrase(const QString& phrase) const;
     QVector<SearchResult> findPhraseTranslation(const QString& translation) const;
@@ -98,6 +108,7 @@ private:
     void handleMixedQuery(const QString& query,
                                              QVector<SearchResult>& results,
                                              QSet<const DictionaryEntry*>& addedEntries) const;
+    // 中文翻译搜索（混合：使用索引+部分遍历）
     QVector<SearchResult> searchChineseDynamic(const QString& query) const;
     QVector<SearchResult> searchChineseTranslation(const QString& query) const;
     // 辅助函数

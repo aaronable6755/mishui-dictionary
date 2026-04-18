@@ -37,8 +37,16 @@ Widget::Widget(QWidget *parent)
 {
     ui->setupUi(this);
     ui->stackedWidget->setCurrentIndex(1);
+    // 1lluw9capfxmkzw1trxay_g pwd 0721
+    qDebug() << "hei";
 
 /////////////////////////////////////////////////////////////
+
+
+    // 创建新的容器 widget
+    /*widget_container_scrollArea = new QWidget(ui->scrollArea);
+    ui->scrollArea->setWidget(widget_container_scrollArea);
+    //ui->scrollArea->setWidgetResizable(true);*/ // 允许内容部件随视口调整
     ui->scrollArea->setWidgetResizable(false);
     // 获取当前应用程序的调色板
     QPalette palette = qApp->palette();
@@ -50,6 +58,14 @@ Widget::Widget(QWidget *parent)
 
     // 将新的调色板应用到整个应用程序
     qApp->setPalette(palette);
+
+    // qDebug() << "ContentWidget size:" << ui->scrollAreaWidgetContents_2->size();
+    // qDebug() << "Viewport size:" << ui->scrollArea->viewport()->size();
+    // qDebug() << "ScrollBar policies: H=" << ui->scrollArea->horizontalScrollBarPolicy()
+    //          << " V=" << ui->scrollArea->verticalScrollBarPolicy();
+    // qDebug() << "ScrollArea size:" << ui->scrollArea->size();
+    // qDebug() << "ScrollArea minimumSize:" << ui->scrollArea->minimumSize();
+    // qDebug() << "ScrollArea maximumSize:" << ui->scrollArea->maximumSize();
     ui->scrollAreaWidgetContents_2->updateGeometry();
     ui->scrollArea->updateGeometry();
     ui->scrollArea->viewport()->update();
@@ -61,7 +77,7 @@ Widget::Widget(QWidget *parent)
         "}"
         );
     //qDebug() << "去D二u不过（";
-    font = ui->label_result->font();
+    font = ui->btn_ka->font();
     font.setPointSize(19);
 
     ui->vocabScrollArea->setWidgetResizable(true);
@@ -78,6 +94,7 @@ Widget::Widget(QWidget *parent)
             });
     Qt::ColorScheme currentScheme = QGuiApplication::styleHints()->colorScheme();
     onColorSchemeChanged(currentScheme);
+    // // qDebug() << "词典加载中...";
 
 
     m_dictLoaded = m_dictionary.loadDictionaryFiles("./texts/values.txt",
@@ -87,19 +104,29 @@ Widget::Widget(QWidget *parent)
                                                     "./texts/cn_phrases.txt");
 
     if (m_dictLoaded){
+        // qDebug() << "字典加载完成！下一步：自检";
         m_dictionary.runTests();
 
-        ui->label_result->setText("正确词汇：<br>最佳翻译：<br>词性：<br>相关词组：<br>翻译：<br>例句：<br>例句翻译：<br><font color = \"#27FF97\">拼写没有问题!</font>");
+        //ui->label_result->setText("正确词汇：<br>最佳翻译：<br>词性：<br>相关词组：<br>翻译：<br>例句：<br>例句翻译：<br><font color = \"#27FF97\">拼写没有问题!</font>");
         ui->label_2->setText("加载已完成！");
         ui->label_2->setStyleSheet("color: #27FF97");
     } else {
-        ui->label_result->setText("请确保texts与mesi_polo.exe位于同一目录下!");
-        ui->label_result->setStyleSheet("color: #FF0D0D"); // 红色
+        //qDebug() << "词典初始化失败！";
+        //ui->label_result->setText("请确保texts与mesi_polo.exe位于同一目录下!");
+        //ui->label_result->setStyleSheet("color: #FF0D0D"); // 红色
         ui->label_2->setText("词典加载失败，功能不可用");
         ui->label_2->setStyleSheet("color: #FF0D0D"); // 红色
 
         ui->lineEdit_translate->setEnabled(false);
     }
+
+    // 在构造函数末尾或创建完所有标签后
+    // QTimer::singleShot(100, this, [this]() {
+    //     qDebug() << "--- After show ---";
+    //     qDebug() << "ScrollArea size:" << ui->scrollArea->size();
+    //     qDebug() << "Viewport size:" << ui->scrollArea->viewport()->size();
+    //     qDebug() << "ContentWidget size:" << ui->scrollAreaWidgetContents_2->size();
+    // });
 };
 
 Widget::~Widget()
@@ -116,8 +143,8 @@ void Widget::createVocabPage(int row_s, QString pos)
 {
 
     QScrollArea *scrollArea = ui->vocabScrollArea;
-    QWidget *oldContainer = scrollArea->takeWidget(); 
-    delete oldContainer;
+    QWidget *oldContainer = scrollArea->takeWidget(); // 取出旧容器（不删除）
+    delete oldContainer; // 删除旧容器及其所有子控件
 
     // 创建新的容器 widget
     QWidget *container = new QWidget;
@@ -189,7 +216,7 @@ void Widget::onColorSchemeChanged(Qt::ColorScheme scheme) {
     updateColors(scheme);
     updateColorStrings(scheme);
 }
-void Widget::updateColors(Qt::ColorScheme scheme) { // 该函数现在不用了
+void Widget::updateColors(Qt::ColorScheme scheme) {
     if (scheme == Qt::ColorScheme::Dark) { // 深色模式
         // ui->label_result->setStyleSheet("QLabel{background-color: #282828; border-radius: 9px; color: #f3f3f3}");
     } else if (scheme == Qt::ColorScheme::Light) { // 浅色模式
@@ -248,15 +275,16 @@ void Widget::on_btn_ko_2_clicked()
 }
 
 void Widget::resultsDisplay(QString& query){
-    if (!m_labels.isEmpty()) {
-        qDeleteAll(m_labels);   // 删除所有标签
-        m_labels.clear();
+    qDebug() << "地方经济";
+    if (!textResults.isEmpty()) {
+        qDeleteAll(textResults);   // 删除所有标签
+        textResults.clear();
     }
 
     // 检查词典是否正确加载
     if (!m_dictLoaded){
         //qDebug() << "词典未加载,无法搜索";
-        ui->label_result->setText("        词典未加载，请检查文件");
+        //ui->label_result->setText("        词典未加载，请检查文件");
         return;
     }
 
@@ -266,14 +294,17 @@ void Widget::resultsDisplay(QString& query){
     }
     //qDebug() << "part>>>1";
     if (m_dictionary.isSentence(query)){
-        qDebug() << "可以";
-        QString str = "翻译：" + m_dictionary.translateSentence(query);
-        ui->label_result->setText(str);
-        qDebug() << "正确显示了";
+        // qDebug() << "可以";
+        // QString str = "翻译：" + m_dictionary.translateSentence(query);
+        // //ui->label_result->setText(str);
+        // qDebug() << "正确显示了";
     }
     else {
+        qDebug() << "else没有问题";
         QVector<SearchResult> results = m_dictionary.smartSearch(query, 10);
+        qDebug() << "smartsearch没有问题";
         int resultsCount = results.count();
+        qDebug() << results.size();
         QString trans = "";
         QString pos = "";
         QString phrase = "";
@@ -281,32 +312,22 @@ void Widget::resultsDisplay(QString& query){
         QString exampleSentence = "";
         QString exampleSentenceTrans = "";
         QVector<QString> sentenceAndTrans;
-        QString extra = "<font color = \"#27FF97\">拼写没有问题</font>";
+        // QString extra = "<font color = \"#27FF97\">拼写没有问题</font>";
         QString exactWord = "";
         QString strToDisplay;
 
         if (resultsCount == 0) { // 没有结果时：
-            qDebug() << "if(resultsCount == 0) begins";
-            if (m_dictionary.isMainlyChinese(query)){
-                if (query != exactWord) {
-                    extra = "<font color = \"#FF6A5A\">无结果,拼写可能有问题！</font>";
-                }
-            }
-            strToDisplay = QString("正确词汇：<br>最佳翻译：<br>词性：<br>相关词组：<br>翻译：<br>例句：<br>例句翻译：<b"
-                                   "r>%1").arg(extra);
-            // qDebug() << strToDisplay;
-            ui->label_result->setText(strToDisplay);
-
+            //qDebug() << "zheduima";
             return;
-        } else {
+        } else if (resultsCount != 0) {
 
             int labelHeight = 291;
             int spacing = 19;
             int totalHeight = resultsCount * (labelHeight + spacing) - spacing;
-
+            bool hasPhr;
+            bool hasPhrTrans;
             ui->scrollAreaWidgetContents_2->resize(467, totalHeight);
-            for(int i = 0; i < resultsCount; i++) {
-                label = new QLabel;
+            for (int i = 0; i < resultsCount; i++) {
                 const SearchResult& sr = results[i];
                 if (m_dictionary.isMainlyChinese(query)) { // 判断是否为中文，是：if 否：else
                     trans = sr.entry->word; // 设置翻译
@@ -315,62 +336,50 @@ void Widget::resultsDisplay(QString& query){
                     trans = sr.entry->word_cn; // 设置翻译
                     exactWord = sr.entry->word; // 设置具体词
                 }
-                if (!m_dictionary.isMainlyChinese(query)){
-                    if (query != exactWord && !m_dictionary.isInteger(query)) {
-                        extra = QString("<font color = \"#FF6A5A\">┏ (゜ω゜)=👉%1应该是%2</font>").arg(query, exactWord);
-                    }
-                }
+                // if (!m_dictionary.isMainlyChinese(query)){
+                //     if (query != exactWord && !m_dictionary.isInteger(query)) {
+                //         extra = QString("<font color = \"#FF6A5A\">┏ (゜ω゜)=👉%1应该是%2</font>").arg(query, exactWord);
+                //     }
+                // }
                 sentenceAndTrans = m_dictionary.createExSentence(sr.entry->word, sr.entry->word_cn, sr.entry->partOfSpeech);
                 // 句子以及句子翻译
 
                 exampleSentence = sentenceAndTrans[0];
                 exampleSentenceTrans = sentenceAndTrans[1];
-
+                bool hasSentence;
+                if (exampleSentence != ""){
+                    hasSentence = true;
+                    exampleSentence += "<br>";
+                }
                 pos = sr.entry->partOfSpeech;
 
-                if (sr.hasPhrases()) {
+                if (sr.hasPhrases() and sr.entry->phrases.size() > i) {
                     phrase = sr.entry->phrases[i];
                     phrase_Trans = sr.entry->phrases_cn[i];
+                    hasPhr = true;
+                    hasPhrTrans = true;
+                    phrase += ":";
+                    phrase_Trans += "<br>";
                 }
 
-                strToDisplay = QString("正确词汇：%1<br>"
-                                       "最佳翻译：%2<br>"
-                                       "词性：%3<br>"
-                                       "相关词组：%4<br>"
-                                       "翻译：%5<br>"
-                                       "例句：%6<br>"
-                                       "%7<br>"
-                                       "%8").arg(exactWord,
+                strToDisplay = QString("<font color = #0A84FF size = '5'>%1\t</font><font color = #FF6A5A size = '3'>%2<br></font>"
+                                       "<font color = #E65100 size = '3'>%3</font><br>"
+                                       "<font color = #9FD89F size = '2'>%4 %5</font>"
+                                       "<font size = '2'>%6%7</font>").arg(
                                         trans,
+                                        exactWord,
                                         pos,
                                         phrase,
                                         phrase_Trans,
                                         exampleSentence,
-                                        exampleSentenceTrans,
-                                        extra);
+                                        exampleSentenceTrans
+                                        );
                 //qDebug() << strToDisplay;
-                if (i == 0) {
-                    ui->label_result->setText(strToDisplay); // 设置结果
-                }
-                else
-                {
-                    label_result_i = new QLabel("", ui->scrollAreaWidgetContents_2);
-                    label_result_i->move(0, i*310);
-                    label_result_i->setFixedSize(455, 291);
-                    label_result_i->setText(strToDisplay);
-                    qDebug() << "daowole";
-                    label_result_i->setFont(font);
 
-                    label_result_i->setStyleSheet( "QLabel{"
-                                                  "border: 1px solid #27FF97;"
-                                                  "border-radius: 15px;"
-                                                  "padding-left: 12px;"
-                                                  "background: rgba(0, 0, 0, 15)"
-                                                  "}");
-                    label_result_i->show();
-                    m_labels.append(label_result_i);
-                }
+                new_result_label(strToDisplay, i, hasPhr, hasPhrTrans, hasSentence);
+
             }
+            // qDebug() << "a?";
             return;
         }
     }
@@ -381,3 +390,36 @@ void Widget::on_btn_kiu_2_clicked()
     createVocabPage(4, "koos.");
 }
 
+void Widget::new_result_label(QString& strToDisplay, int i, bool hasPhr, bool hasPhrTrans, bool hasSentence){
+    textResult = new QLabel("", ui->scrollAreaWidgetContents_2);
+    int height = 140;
+    if (hasPhr){
+        height += 18;
+    }
+    if (hasPhrTrans){
+        height += 18;
+    }
+    if (hasSentence) {
+        height += 18;
+    }
+    textResult->move(0, i*(height+20));
+    textResult->setFixedSize(455, height);
+    textResult->setText(strToDisplay);
+    //qDebug() << "daowole " << i ;
+    textResult->setFont(font);
+    //qDebug() << "font 没有问题";
+
+    textResult->setStyleSheet("QLabel{"
+                                "white-space: pre-wrap;"
+                                "border: 1px solid #27FF97;"
+                                "border-radius: 15px;"
+                                "padding-left: 12px;"
+                                "padding-top: 8px;"
+                                "background: rgba(20, 20, 20, 255)"
+                                "}");
+    textResult->show();
+    // qDebug() << "显示没有问题" << i;
+    textResults.append(textResult);
+    // qDebug() << "append没有问题";
+    return;
+}

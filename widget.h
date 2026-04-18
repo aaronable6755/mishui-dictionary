@@ -52,6 +52,8 @@ private slots:
 
     void on_btn_kiu_2_clicked();
 
+    void new_result_label(QString& strToDisplay, int i,bool hasPhr, bool hasPhrTrans, bool hasSentence);
+
 private:
     Ui::Widget *ui;
     ConlangDictionary m_dictionary;  // 词典作为成员变量
@@ -76,10 +78,10 @@ private:
 
     QWidget* widget_container_scrollArea;
 
-    QLabel* label_result_i;
+    QLabel* textResult;
     bool translate_returned_clicked = false;
 
-    QList<QLabel*> m_labels;
+    QList<QLabel*> textResults;
     QFont font;
 };
 
