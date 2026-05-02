@@ -7,10 +7,15 @@
 本项目使用Qt(C++的GUI框架)
 其实不光是米水语，其它语言也能胜任，只要你把各种东西调整好就行（后面再写吧，毕竟我的命名有点诡异，请见谅）
 keys.txt: 对应中文
+
 values.txt: 对应米水语，英文，你想的
+
 wordtype.txt: 对应词性
+
 phrases.txt: 对应词组
+
 cn_phrases.txt: 对应词组中文翻译
+
 
 # 开发环境
 本项目依赖Qt和rapidfuzz(C++模糊匹配库)
