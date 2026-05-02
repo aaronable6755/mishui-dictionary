@@ -1,9 +1,8 @@
 # 米水大词典 mishui-dictionary
 给米水语(我的诡异人造语言)编写的词典
 词语搜索时间复杂度O(1), 但是词组是O(n), 导致整体呈现O(n), 有点拧巴但是后续会优化的！
-！！！！务必长句搜索时，不要带中文逗号，因为这个功能还没做完，现在会报错！！
-
-[米水城介绍页面]https://www.mishui.city/archives/mi-shui-da-ci-dian
+！！！！务必长句搜索时，不要带中文逗号，因为这个功能还没做完，现在会报错！！  
+[米水城介绍页面](https://www.mishui.city/archives/mi-shui-da-ci-dian)
 
 # 简介
 本项目使用Qt(C++的GUI框架)
